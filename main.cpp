@@ -11,6 +11,9 @@
 #include <limits>
 #include "estructuras.h"
 #include "reportes.h"
+#include "catalogo.h"
+#include "diario.h"
+#include "costos.h"
 
 using namespace std;
 
@@ -80,18 +83,8 @@ void submenuReportes() {
 }
 
 // ============================================================================
-// Mensaje para Módulos en Construcción (Integración Futura)
+// (Los módulos 1, 2 y 3 ahora están implementados en sus propios .cpp)
 // ============================================================================
-
-void mostrarModuloEnConstruccion(int numeroModulo, const char* nombreModulo) {
-    cout << "\n";
-    imprimirSeparador(65, '*');
-    cout << "  MODULO " << numeroModulo << ": " << nombreModulo << "\n";
-    cout << "  Estado: [Modulo en construccion...]\n";
-    cout << "  Nota: Esta seccion sera conectada por el equipo en la rama correspondiente.\n";
-    imprimirSeparador(65, '*');
-    pausarConsola();
-}
 
 // ============================================================================
 // Función Principal
@@ -118,15 +111,15 @@ int main() {
 
         switch (opcionPrincipal) {
             case 1:
-                mostrarModuloEnConstruccion(1, "Catalogo de Cuentas Contables");
+                submenuCatalogo();
                 break;
 
             case 2:
-                mostrarModuloEnConstruccion(2, "Libro Diario y Asientos Contables");
+                submenuDiario();
                 break;
 
             case 3:
-                mostrarModuloEnConstruccion(3, "Contabilidad de Costos por Ordenes");
+                submenuCostos();
                 break;
 
             case 4:
