@@ -3,74 +3,97 @@
 **Sistema Unificado de Contabilidad Financiera y Costos**
 
 ![C++](https://img.shields.io/badge/C%2B%2B-00599C?style=flat&logo=c%2B%2B&logoColor=white)
-![Status](https://img.shields.io/badge/estado-en%20pruebas-yellow)
+![Status](https://img.shields.io/badge/estado-completado-brightgreen)
 ![Curso](https://img.shields.io/badge/curso-Algoritmos%20UMG-1F3864)
 
-Proyecto Fase I–II del curso de Algoritmos (UMG) — Grupo 7.
-Un sistema de consola en C++ que integra la **Contabilidad Financiera** (catálogo de cuentas, libro diario, mayor, balances) con la **Contabilidad de Costos Industriales** (materia prima, mano de obra, CIF), usando registros (`struct`) y archivos binarios como almacenamiento permanente.
+Proyecto de Algoritmos (UMG) — Grupo 7.
+Un sistema de consola en C++ que integra la **Contabilidad Financiera** (catálogo de cuentas, libro diario con partida doble, reportes contables) con la **Contabilidad de Costos Industriales** (órdenes de producción con cálculo de costo unitario), implementado bajo el paradigma de **Programación Estructurada clásica** (estricto cero clases / POO), empleando registros (`struct`) y archivos binarios (`.dat`) con soporte para operaciones CRUD completas, bajas lógicas y validación de integridad referencial.
 
 ## Tabla de contenidos
 
-- [¿Qué hace este sistema?](#qué-hace-este-sistema)
-- [Arquitectura modular](#arquitectura-modular)
-- [Cómo se conecta todo](#cómo-se-conecta-todo)
+- [Arquitectura y Módulos](#arquitectura-y-módulos)
+- [Funcionalidades por Módulo](#funcionalidades-por-módulo)
 - [Requisitos](#requisitos)
 - [Cómo compilar y ejecutar](#cómo-compilar-y-ejecutar)
 - [Estructura del proyecto](#estructura-del-proyecto)
-- [Uso](#uso)
+- [Reglas de Negocio y Bajas Lógicas](#reglas-de-negocio-y-bajas-lógicas)
 - [Equipo y asignaciones](#equipo-y-asignaciones)
-- [Flujo de trabajo en Git](#flujo-de-trabajo-en-git)
 - [Estado del proyecto](#estado-del-proyecto)
 
-## ¿Qué hace este sistema?
+## Arquitectura y Módulos
 
-Simula la operación contable de una empresa: registra la compra de materia prima, calcula el costo de producción (comparando PEPS vs. UEPS), y genera automáticamente los asientos contables correspondientes — sin que el usuario tenga que capturar todo dos veces.
+| Módulo | Descripción | Archivo binario | Registro (`struct`) |
+|---|---|---|---|
+| **Catálogo Contable** | CRUD completo de cuentas con validación de tipos, saldos e integridad referencial | `cuentas.dat` | `Cuenta` |
+| **Libro Diario** | Registro de partidas con validación estricta de partida doble ($\sum Debe = \sum Haber$), consultas multifiltro, modificación y eliminación | `diario.dat` | `Asiento` |
+| **Costos Industriales** | CRUD de órdenes de producción: materia prima (MD) + mano de obra (MOD) + CIF $\to$ recálculo de costo unitario | `costos.dat` | `OrdenCosto` |
+| **Reportes Automatizados** | Balance de Comprobación, Estado de Resultados y Hoja de Costos por Órdenes | *(solo lectura)* | — |
 
-## Arquitectura modular
+## Funcionalidades por Módulo
 
-| Módulo | Descripción | Archivo binario |
-|---|---|---|
-| **Catálogo Contable** | CRUD del plan de cuentas (Activo, Pasivo, Capital, Costos, Gastos) | `cuentas.dat` |
-| **Libro Diario** | Asientos contables con validación de partida doble (ΣDebe = ΣHaber) | `diario.dat` |
-| **Costos Industriales** | Órdenes de producción: materia prima + mano de obra + CIF → costo unitario | `costos.dat` |
-| **Reportes Automatizados** | Balance de Comprobación, Estado de Resultados, Hoja de Costos | *(solo lectura)* |
+### 1. Módulo de Catálogo Contable (`catalogo.h` / `catalogo.cpp`)
+- `agregarCuenta()`: Alta de cuentas con código numérico único (validado contra activos e inactivos), validación de nombre no vacío, tipo contable normalizado y saldo inicial no negativo.
+- `listarCuentas()`: Listado tabular de todas las cuentas activas en `cuentas.dat` con sumatoria acumulada de saldos.
+- `consultarCuenta()`: Búsqueda y presentación detallada de una cuenta contable activa por su código.
+- `modificarCuenta()`: Modificación in-place de nombre, tipo normalizado o saldo (soporta ENTER vacío para conservar valor actual). Código no modificable. Requiere confirmación (S/N).
+- `eliminarCuenta()`: Baja lógica (`activo = 0`). Impide la eliminación si existen asientos contables activos en `diario.dat` asociados a la cuenta (integridad referencial). Requiere confirmación (S/N).
+- `cuentaActiva(int codigo)`: Función pública auxiliar para verificar la existencia y estado activo de una cuenta.
+- `submenuCatalogo()`: Menú interactivo con navegación protegida ante EOF.
 
-Cada registro se define como un `struct` (`Cuenta`, `Asiento`, `OrdenCosto`) y vive en su propio archivo binario, relacionado con los demás por código de cuenta.
+### 2. Módulo de Libro Diario (`diario.h` / `diario.cpp`)
+- `registrarPartida()`: Registro de partidas contables de hasta 50 movimientos con validación de:
+  - Número de partida único entre partidas activas.
+  - Formato estricto de fecha `DD/MM/AAAA` (comprobación de días según mes, rango 2000-2100 y años bisiestos).
+  - Verificación de que cada cuenta exista y esté activa en el catálogo (`cuentaActiva`).
+  - Validación matemática de partida doble ($|\sum Debe - \sum Haber| < 0.001$). Rechazo total si descuadra.
+- `listarAsientos()`: Listado general de todos los movimientos activos en `diario.dat` agrupados por partida con totales de Debe y Haber.
+- `consultarPartidaPorNumero()`: Muestra todos los movimientos activos de una partida específica y sus sumatorias.
+- `consultarPorCuenta()`: Filtra y muestra todos los movimientos activos que afectan a un código de cuenta.
+- `consultarPorFecha()`: Filtra y muestra todos los movimientos activos asentados en una fecha exacta.
+- `modificarPartida()`: Muestra la partida actual y permite recapturar todos sus movimientos; solo si la nueva versión cuadra y se confirma (S/N), desactiva los movimientos anteriores y guarda los nuevos con el mismo número de partida.
+- `eliminarPartida()`: Baja lógica (`activo = 0`) in-place de todos los movimientos de una partida. Requiere confirmación (S/N).
+- `cuentaTieneAsientosActivos(int codigoCuenta)`: Función pública de integridad para comprobar si una cuenta tiene movimientos vigentes.
+- `submenuDiario()`: Menú interactivo del módulo.
 
-## Cómo se conecta todo
+### 3. Módulo de Costos Industriales (`costos.h` / `costos.cpp`)
+- `crearOrden()`: Alta de órdenes de producción con número de orden único (validado contra activos e inactivos), costos (MD, MOD, CIF) no negativos y unidades producidas $> 0$. Cálculo automático del costo unitario.
+- `listarOrdenes()`: Tabla detallada de órdenes activas con totales acumulados de cada elemento de costo y costo unitario promedio ponderado.
+- `consultarOrden()`: Detalle completo de una orden activa por su número.
+- `modificarOrden()`: Modificación in-place de MD, MOD, CIF y unidades con recálculo automático del costo unitario. Requiere confirmación (S/N).
+- `eliminarOrden()`: Baja lógica (`activo = 0`) in-place de una orden de producción. Requiere confirmación (S/N).
+- `submenuCostos()`: Menú interactivo del módulo.
 
-~~~text
-Compra de Materia Prima
-        │
-        ▼
-Inventario / Kardex (PEPS y UEPS)
-        │
-        ▼
-Consumo en Producción (+ Mano de Obra + CIF)
-        │
-        ▼
-Costo de Producción  ──────►  Diario (automático) ──────►  Mayor ──────►  Balance
-~~~
+### 4. Módulo de Reportes Automatizados (`reportes.h` / `reportes.cpp`)
+- `generarBalanceComprobacion()`: Clasificación automática según tipo normalizado (Activo, Gasto, Costo $\to$ Debe; Pasivo, Capital, Ingreso $\to$ Haber), ignorando registros inactivos y verificando el cuadre general.
+- `generarEstadoResultados()`: Filtrado de ingresos operacionales contra costos y gastos operacionales, calculando la Utilidad o Pérdida Neta del período.
+- `generarHojaCostos()`: Detalle de elementos de costos y unidades producidas por orden activa.
 
 ## Requisitos
 
-- Compilador C++ (`g++`) compatible con C++11 o superior
-- Sin dependencias externas — solo librería estándar
+- Compilador C++ (`g++`) compatible con C++98, C++11, C++14 o C++17.
+- Sin dependencias externas — solo biblioteca estándar de C++.
 
 ## Cómo compilar y ejecutar
 
 ### Linux
 ~~~bash
-g++ -Wall -Wextra -std=c++11 main.cpp reportes.cpp -o fincost
+g++ -Wall -Wextra -pedantic -std=c++11 main.cpp catalogo.cpp diario.cpp costos.cpp reportes.cpp -o fincost
 ./fincost
 ~~~
 
-### Windows
-Si tienes Dev-C++ instalado en Windows, puedes compilar y ejecutar el proyecto desde el IDE abriendo los archivos fuente.
-
-Si prefieres usar la terminal (mediante MinGW, WSL o WSL2), ejecuta:
+*También es compatible con estándares anteriores y posteriores:*
 ~~~bash
-g++ -Wall -Wextra -std=c++11 main.cpp reportes.cpp -o fincost
+# C++98
+g++ -Wall -Wextra -pedantic -std=c++98 main.cpp catalogo.cpp diario.cpp costos.cpp reportes.cpp -o fincost
+
+# C++17
+g++ -Wall -Wextra -pedantic -std=c++17 main.cpp catalogo.cpp diario.cpp costos.cpp reportes.cpp -o fincost
+~~~
+
+### Windows
+Mediante MinGW, MSYS2 o consola de desarrollador:
+~~~cmd
+g++ -Wall -Wextra -pedantic -std=c++11 main.cpp catalogo.cpp diario.cpp costos.cpp reportes.cpp -o fincost.exe
 fincost.exe
 ~~~
 
@@ -78,31 +101,24 @@ fincost.exe
 
 ~~~text
 FinCost-CPP/
-├── estructuras.h              # Registros base y estandarización (Núcleo)
-├── main.cpp                   # Menú principal e integración
-├── catalogo.h/.cpp            # Módulo 1 
-├── diario.h/.cpp              # Módulo 2 
-├── costos.h/.cpp              # Módulo 3 
-├── reportes.h/.cpp            # Módulo 4
-├── cuentas.dat                # Se genera al ejecutar
-├── diario.dat                 # Se genera al ejecutar
-├── costos.dat                 # Se genera al ejecutar
+├── estructuras.h              # Registros base (Cuenta, Asiento, OrdenCosto) con campo activo
+├── main.cpp                   # Menú principal e integración segura con EOF
+├── catalogo.h/.cpp            # Módulo 1 - Catálogo de Cuentas (CRUD + integridad)
+├── diario.h/.cpp              # Módulo 2 - Libro Diario (CRUD + partida doble)
+├── costos.h/.cpp              # Módulo 3 - Costos Industriales (CRUD + costo unitario)
+├── reportes.h/.cpp            # Módulo 4 - Reportes Financieros y Costos
+├── cuentas.dat                # Archivo binario de cuentas
+├── diario.dat                 # Archivo binario de libro diario
+├── costos.dat                 # Archivo binario de órdenes de costo
 └── README.md
 ~~~
 
-## Uso
+## Reglas de Negocio y Bajas Lógicas
 
-Al ejecutar, el menú principal ofrece:
-
-~~~text
-1) Catálogo Contable
-2) Libro Diario
-3) Costos Industriales
-4) Reportes Automatizados
-5) Salir
-~~~
-
-Cada opción abre un submenú con las operaciones correspondientes.
+1. **Baja lógica:** La eliminación de registros nunca destruye físicamente bytes del archivo; actualiza el campo `activo = 0` directamente en su posición de disco mediante `fstream` en modo lectura/escritura (`ios::in | ios::out | ios::binary`) con posicionamiento por `seekp()`.
+2. **Consultas y reportes:** Ignoran sistemáticamente cualquier registro con `activo == 0`.
+3. **Unicidad histórica:** Un código de cuenta o número de orden que haya sido dado de baja lógica no puede ser reutilizado, previniendo colisiones de auditoría histórica.
+4. **Integridad referencial:** Una cuenta contable no puede eliminarse si tiene asientos contables activos registrados en `diario.dat`.
 
 ## Equipo y asignaciones
 
@@ -112,23 +128,16 @@ Cada opción abre un submenú con las operaciones correspondientes.
 | Clisman Emanuel López Lajpop | Libro Diario | 0900-26-21859 |
 | Joseph Alain Mendez Mendez | Costos Industriales | 0900-26-1674 |
 | José Francisco González Ordoñez | Reportes, Estructura e Integración | 0900-26-562 |
-| *Todo el equipo* | Pruebas de escritorio y depuración | — |
-
-## Flujo de trabajo en Git
-
-1. Clonar el repositorio.
-2. Crear una rama por módulo a partir de `dev` (ej. `git checkout -b ft/jgonzalez`).
-3. Hacer commits pequeños y frecuentes, con mensajes claros.
-4. Subir la rama (`git push origin ft/nombre-rama`) y avisar al equipo cuando el módulo esté listo.
-5. Crear un **Pull Request (PR)** hacia la rama `dev` para pruebas de integración. Las ramas `main` y `dev` están protegidas contra subidas directas.
 
 ## Estado del proyecto
 
-- [x] Definición de estructuras y arquitectura binaria.
-- [x] Estructura inicial, menú principal y submódulo de reportes automatizados.
-- [ ] Desarrollo de módulos CRUD (Catálogo, Diario, Costos).
-- [ ] Pruebas de escritorio e integración de los 4 módulos en `dev`.
-- [ ] Fusión final a `main` y documentación técnica (manual de usuario).
+- [x] Definición de estructuras y arquitectura binaria con soporte para baja lógica (`int activo`).
+- [x] CRUD completo del Módulo 1 (Catálogo Contable) con integridad referencial.
+- [x] CRUD completo del Módulo 2 (Libro Diario) con validación estricta de partida doble y fecha.
+- [x] CRUD completo del Módulo 3 (Costos Industriales) con recálculo de costo unitario.
+- [x] Módulo 4 (Reportes Automatizados) con filtrado de registros inactivos y clasificación contable corregida.
+- [x] Cero advertencias con `-Wall -Wextra -pedantic` en C++98, C++11 y C++17.
+- [x] Protección completa contra bucle infinito ante EOF (Ctrl+D / pipe cerrado).
 
 ---
 *Proyecto académico — Curso de Algoritmos, Universidad Mariano Gálvez de Guatemala.*
