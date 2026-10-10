@@ -2,8 +2,8 @@
  * ============================================================================
  * Proyecto: FinCost C++ - Sistema de Contabilidad Financiera y Costos
  * Archivo:  main.cpp
- * Descripción: Menú principal, integración de módulos y submenú de reportes.
- * Paradigma: Programación Estructurada (Estricto sin clases / POO).
+ * Descripción: Menu principal, integracion de modulos y submenu de reportes.
+ * Paradigma: Programacion Estructurada (Estricto sin clases / POO).
  * ============================================================================
  */
 
@@ -22,10 +22,13 @@ using namespace std;
 // ============================================================================
 
 /**
- * Lee un entero desde el teclado con validación contra entradas no numéricas.
+ * Lee un entero desde el teclado con validacion contra entradas no numericas y EOF.
  */
-int leerOpcion() {
-    int opcion;
+static int leerOpcion() {
+    int opcion = 0;
+    if (cin.eof()) {
+        return -1;
+    }
     while (!(cin >> opcion)) {
         if (cin.eof()) {
             return -1; // Fin de entrada (EOF)
@@ -34,8 +37,9 @@ int leerOpcion() {
         cin.ignore(numeric_limits<streamsize>::max(), '\n');
         cout << " [!] Entrada no valida. Ingrese un numero de opcion: ";
     }
-    // Descartar cualquier residuo en la línea
-    cin.ignore(numeric_limits<streamsize>::max(), '\n');
+    if (!cin.eof()) {
+        cin.ignore(numeric_limits<streamsize>::max(), '\n');
+    }
     return opcion;
 }
 
@@ -59,6 +63,9 @@ void submenuReportes() {
         cout << " Seleccione una opcion [1-4]: ";
 
         opcionSubmenu = leerOpcion();
+        if (cin.eof() || opcionSubmenu == -1) {
+            break;
+        }
 
         switch (opcionSubmenu) {
             case 1:
@@ -71,7 +78,6 @@ void submenuReportes() {
                 generarHojaCostos();
                 break;
             case 4:
-            case -1: // Si se detecta EOF, salir limpiamente al menú principal
                 cout << "\n [i] Regresando al Menu Principal...\n";
                 break;
             default:
@@ -79,12 +85,8 @@ void submenuReportes() {
                 pausarConsola();
                 break;
         }
-    } while (opcionSubmenu != 4 && opcionSubmenu != -1);
+    } while (opcionSubmenu != 4 && !cin.eof());
 }
-
-// ============================================================================
-// (Los módulos 1, 2 y 3 ahora están implementados en sus propios .cpp)
-// ============================================================================
 
 // ============================================================================
 // Función Principal
@@ -108,6 +110,9 @@ int main() {
         cout << " Seleccione una opcion [1-5]: ";
 
         opcionPrincipal = leerOpcion();
+        if (cin.eof() || opcionPrincipal == -1) {
+            opcionPrincipal = 5;
+        }
 
         switch (opcionPrincipal) {
             case 1:
@@ -127,7 +132,6 @@ int main() {
                 break;
 
             case 5:
-            case -1: // Salida del sistema ante opción 5 o EOF
                 cout << "\n";
                 imprimirSeparador(65, '=');
                 cout << "   Gracias por utilizar FinCost C++. Cerrando sesion segura...\n";
@@ -141,7 +145,7 @@ int main() {
                 break;
         }
 
-    } while (opcionPrincipal != 5 && opcionPrincipal != -1);
+    } while (opcionPrincipal != 5 && !cin.eof());
 
     return 0;
 }

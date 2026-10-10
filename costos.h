@@ -6,8 +6,8 @@
  * Proyecto: FinCost C++ - Sistema de Contabilidad Financiera y Costos
  * Archivo:  costos.h
  * Descripción: Declaraciones del Módulo 3 - Contabilidad de Costos Industriales.
- *              Gestiona órdenes de producción con cálculo automático de
- *              costo unitario sobre el archivo binario costos.dat.
+ *              Gestiona altas, consultas, modificaciones y baja logica de ordenes
+ *              de produccion sobre el archivo binario costos.dat.
  * Paradigma: Programación Estructurada (Estricto sin clases / POO).
  * ============================================================================
  */
@@ -19,22 +19,38 @@
 // ============================================================================
 
 /**
- * Solicita los datos de una nueva orden de producción.
- * Calcula automáticamente el costo unitario con la fórmula:
- *   Costo Unitario = (MD + MOD + CIF) / Unidades Producidas
- * antes de guardar el registro en costos.dat.
+ * Solicita los datos de una nueva orden de produccion.
+ * Valida numero de orden unico (contra activos o no), costos no negativos
+ * y unidades mayores a cero. Calcula automaticamente el costo unitario.
  */
 void crearOrden();
 
 /**
- * Lee e imprime en consola todas las órdenes de costos almacenadas
- * en costos.dat con formato tabulado y totales acumulados.
+ * Lee e imprime en consola todas las ordenes de costo activas (activo == 1)
+ * almacenadas en costos.dat con formato tabulado y totales acumulados.
  */
 void listarOrdenes();
 
 /**
- * Muestra el submenú del Módulo 3 con las opciones de crear y listar
- * órdenes de costos. Cicla hasta que el usuario regrese al menú principal.
+ * Consulta y muestra el detalle completo de una orden activa por su numero.
+ */
+void consultarOrden();
+
+/**
+ * Modifica los elementos de costo (MD, MOD, CIF) o las unidades producidas
+ * de una orden activa existente. Recalcula automaticamente el costo unitario.
+ * Solicita confirmacion (S/N) previa.
+ */
+void modificarOrden();
+
+/**
+ * Realiza la baja logica (activo = 0) de una orden de produccion.
+ * Solicita confirmacion (S/N) antes de aplicar la baja.
+ */
+void eliminarOrden();
+
+/**
+ * Muestra el submenú del Módulo 3 con las opciones de gestion de costos.
  */
 void submenuCostos();
 

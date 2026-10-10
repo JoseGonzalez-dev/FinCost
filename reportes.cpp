@@ -3,7 +3,8 @@
  * Proyecto: FinCost C++ - Sistema de Contabilidad Financiera y Costos
  * Archivo:  reportes.cpp
  * Descripción: Implementación del Módulo de Reportes Automatizados con lectura
- *              de archivos binarios (.dat) y formateo financiero.
+ *              de archivos binarios (.dat), filtrado de bajas lógicas y
+ *              clasificación contable estandarizada.
  * Paradigma: Programación Estructurada (Estricto sin clases / POO).
  * ============================================================================
  */
@@ -23,7 +24,7 @@ using namespace std;
 // ============================================================================
 
 /**
- * Compara dos cadenas de texto de forma insensible a mayúsculas/minúsculas.
+ * Compara dos cadenas de texto de forma insensible a mayusculas/minusculas.
  */
 static bool contieneSubcadenaInsensible(const char* fuente, const char* busqueda) {
     if (!fuente || !busqueda) return false;
@@ -55,11 +56,10 @@ void imprimirSeparador(int longitud, char caracter) {
 }
 
 void pausarConsola() {
-    cout << "\nPresione [ENTER] para continuar...";
     if (cin.eof()) {
-        cout << "\n";
         return;
     }
+    cout << "\nPresione [ENTER] para continuar...";
     string linea;
     getline(cin, linea);
 }
@@ -87,7 +87,7 @@ void generarBalanceComprobacion() {
     ifstream archivo(ARCHIVO_CUENTAS, ios::binary | ios::in);
 
     if (!archivo.is_open()) {
-        mostrarErrorArchivo(ARCHIVO_CUENTAS, "Modulo 1 (Catalogo de Cuentas / Asientos)");
+        mostrarErrorArchivo(ARCHIVO_CUENTAS, "Modulo 1 (Catalogo de Cuentas)");
         pausarConsola();
         return;
     }
@@ -115,13 +115,18 @@ void generarBalanceComprobacion() {
     cout << fixed << setprecision(2);
 
     while (archivo.read(reinterpret_cast<char*>(&cuenta), sizeof(Cuenta))) {
+        // Ignorar registros eliminados (baja logica)
+        if (cuenta.activo == 0) {
+            continue;
+        }
+
         totalRegistros++;
         double debe = 0.0;
         double haber = 0.0;
 
-        // Determinación de la naturaleza contable según el tipo de cuenta:
-        // Cuentas de Activo y Gasto/Costo tienen saldo deudor (Debe).
-        // Cuentas de Pasivo, Capital/Patrimonio e Ingreso tienen saldo acreedor (Haber).
+        // Criterio de clasificacion contable estandarizado:
+        // Activo, Gasto y Costo -> Debe (Naturaleza Deudora)
+        // Pasivo, Capital e Ingreso -> Haber (Naturaleza Acreedora)
         if (contieneSubcadenaInsensible(cuenta.tipo, "Activo") ||
             contieneSubcadenaInsensible(cuenta.tipo, "Gasto")  ||
             contieneSubcadenaInsensible(cuenta.tipo, "Costo")) {
@@ -144,7 +149,7 @@ void generarBalanceComprobacion() {
     archivo.close();
 
     if (totalRegistros == 0) {
-        cout << "\n [i] El archivo \"" << ARCHIVO_CUENTAS << "\" esta vacio. No hay cuentas registradas.\n";
+        cout << "\n [i] El archivo \"" << ARCHIVO_CUENTAS << "\" no contiene cuentas activas.\n";
         imprimirSeparador(88, '-');
         pausarConsola();
         return;
@@ -157,7 +162,7 @@ void generarBalanceComprobacion() {
          << "\n";
     imprimirSeparador(88, '=');
 
-    // Validación de la Partida Doble
+    // Validacion de la Partida Doble
     double diferencia = fabs(sumaTotalDebe - sumaTotalHaber);
     if (diferencia < 0.001) {
         cout << " [OK] ESTADO: BALANCE DE COMPROBACION CUADRADO (Diferencia: $0.00)\n";
@@ -197,7 +202,7 @@ void generarEstadoResultados() {
     int cantIngresos = 0;
     int cantGastos = 0;
 
-    // --- SECCIÓN 1: INGRESOS OPERACIONALES ---
+    // --- SECCION 1: INGRESOS OPERACIONALES ---
     cout << "\n [1] INGRESOS OPERACIONALES\n";
     imprimirSeparador(75, '-');
     cout << left  << setw(10) << "CODIGO"
@@ -207,6 +212,9 @@ void generarEstadoResultados() {
     imprimirSeparador(75, '-');
 
     while (archivo.read(reinterpret_cast<char*>(&cuenta), sizeof(Cuenta))) {
+        if (cuenta.activo == 0) {
+            continue; // Ignorar cuentas inactivas
+        }
         if (contieneSubcadenaInsensible(cuenta.tipo, "Ingreso") ||
             contieneSubcadenaInsensible(cuenta.tipo, "Venta")) {
             cantIngresos++;
@@ -219,7 +227,7 @@ void generarEstadoResultados() {
     }
 
     if (cantIngresos == 0) {
-        cout << "    (No se encontraron cuentas registradas de tipo Ingreso)\n";
+        cout << "    (No se encontraron cuentas activas de tipo Ingreso)\n";
     }
     imprimirSeparador(75, '-');
     cout << left  << setw(55) << "TOTAL INGRESOS:"
@@ -227,8 +235,7 @@ void generarEstadoResultados() {
          << "\n";
     imprimirSeparador(75, '=');
 
-    // --- SECCIÓN 2: COSTOS Y GASTOS OPERACIONALES ---
-    // Rebobinar el archivo binario para el segundo pase
+    // --- SECCION 2: COSTOS Y GASTOS OPERACIONALES ---
     archivo.clear();
     archivo.seekg(0, ios::beg);
 
@@ -241,6 +248,9 @@ void generarEstadoResultados() {
     imprimirSeparador(75, '-');
 
     while (archivo.read(reinterpret_cast<char*>(&cuenta), sizeof(Cuenta))) {
+        if (cuenta.activo == 0) {
+            continue; // Ignorar cuentas inactivas
+        }
         if (contieneSubcadenaInsensible(cuenta.tipo, "Gasto") ||
             contieneSubcadenaInsensible(cuenta.tipo, "Costo")) {
             cantGastos++;
@@ -253,7 +263,7 @@ void generarEstadoResultados() {
     }
 
     if (cantGastos == 0) {
-        cout << "    (No se encontraron cuentas registradas de tipo Gasto/Costo)\n";
+        cout << "    (No se encontraron cuentas activas de tipo Gasto/Costo)\n";
     }
     imprimirSeparador(75, '-');
     cout << left  << setw(55) << "TOTAL GASTOS Y COSTOS:"
@@ -263,7 +273,7 @@ void generarEstadoResultados() {
 
     archivo.close();
 
-    // --- RESUMEN FINAL: UTILIDAD O PÉRDIDA NETA ---
+    // --- RESUMEN FINAL: UTILIDAD O PERDIDA NETA ---
     double resultadoNeto = totalIngresos - totalGastos;
 
     cout << "\n";
@@ -300,7 +310,7 @@ void generarHojaCostos() {
     cout << "\n";
     imprimirSeparador(104, '=');
     cout << "                              FINCOST C++ - MODULO DE COSTOS\n";
-    cout << "                         HOJA DE COSTOS POR ORDENES DE PRODUCCION\n";
+    cout << "                    HOJA DE COSTOS POR ORDENES DE PRODUCCION (ACTIVAS)\n";
     imprimirSeparador(104, '=');
 
     cout << left  << setw(10) << "N. ORDEN"
@@ -324,12 +334,13 @@ void generarHojaCostos() {
     cout << fixed << setprecision(2);
 
     while (archivo.read(reinterpret_cast<char*>(&orden), sizeof(OrdenCosto))) {
+        if (orden.activo == 0) {
+            continue; // Ignorar ordenes inactivas
+        }
+
         totalOrdenes++;
-        
-        // Cálculo del Costo Total de la orden (MD + MOD + CIF)
         double costoTotalOrden = orden.materiales_directos + orden.mano_obra_directa + orden.cif;
         
-        // Recálculo seguro o validación de costo unitario
         double costoUnitarioCalculado = 0.0;
         if (orden.unidades_producidas > 0) {
             costoUnitarioCalculado = costoTotalOrden / orden.unidades_producidas;
@@ -356,7 +367,7 @@ void generarHojaCostos() {
     archivo.close();
 
     if (totalOrdenes == 0) {
-        cout << "\n [i] El archivo \"" << ARCHIVO_COSTOS << "\" esta vacio. No hay ordenes registradas.\n";
+        cout << "\n [i] El archivo \"" << ARCHIVO_COSTOS << "\" no contiene ordenes activas registradas.\n";
         imprimirSeparador(104, '-');
         pausarConsola();
         return;
@@ -376,7 +387,7 @@ void generarHojaCostos() {
          << "\n";
     imprimirSeparador(104, '=');
 
-    cout << " Resumen: " << totalOrdenes << " orden(es) procesada(s) | Total de unidades fabricadas: " 
+    cout << " Resumen: " << totalOrdenes << " orden(es) activa(s) procesada(s) | Total de unidades fabricadas: " 
          << acumUnidades << "\n";
     imprimirSeparador(104, '-');
 
