@@ -91,7 +91,13 @@ g++ -Wall -Wextra -pedantic -std=c++17 main.cpp catalogo.cpp diario.cpp costos.c
 ~~~
 
 ### Windows
-Mediante MinGW, MSYS2 o consola de desarrollador:
+
+#### Opción 1: En Dev-C++ (Recomendado para entorno gráfico)
+1. Abre el archivo de proyecto [`FinCost.dev`](FinCost.dev) directamente en Dev-C++ (`Archivo -> Abrir Proyecto o Archivo...`).
+2. Presiona **F11** (*Compilar y Ejecutar*) o ve al menú `Ejecutar -> Compilar y Ejecutar`.
+> **Nota importante:** En Dev-C++ **NO** abras únicamente `main.cpp` con F9, ya que al ser un sistema modular de 5 archivos `.cpp`, requiere compilarse como **Proyecto** para que el enlazador vincule todos los módulos.
+
+#### Opción 2: Mediante consola (MinGW, MSYS2 o CMD)
 ~~~cmd
 g++ -Wall -Wextra -pedantic -std=c++11 main.cpp catalogo.cpp diario.cpp costos.cpp reportes.cpp -o fincost.exe
 fincost.exe
@@ -101,6 +107,7 @@ fincost.exe
 
 ~~~text
 FinCost-CPP/
+├── FinCost.dev                # Archivo de proyecto listo para Dev-C++ (Windows)
 ├── estructuras.h              # Registros base (Cuenta, Asiento, OrdenCosto) con campo activo
 ├── main.cpp                   # Menú principal e integración segura con EOF
 ├── catalogo.h/.cpp            # Módulo 1 - Catálogo de Cuentas (CRUD + integridad)
